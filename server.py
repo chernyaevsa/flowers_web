@@ -1,6 +1,10 @@
-from flask import Flask, Response
+from flask import Flask, Response, jsonify
 from flask_cors import CORS
-import json
+from sqlalchemy import create_engine, text
+
+connection_string = "mysql+pymysql://flowers:123456@192.168.3.120:3306/flowers"
+engine = create_engine(connection_string, echo=True)
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -11,21 +15,13 @@ def index():
 
 @app.route("/api/product/all")
 def get_products():
-    products = [
-        {
-            "name": "Красные розы",
-            "description": "Обычные красные розы 🌹",
-            "price": 150,
-            "photo": "https://primamediamts.servicecdn.ru/f/main/5030/5029680.jpg?38bb7ffccb21a777293822fae1c8473e"
-        },
-        {
-            "name": "Белые розы",
-            "description": "Обычные белые розы 🌹 <- белый",
-            "price": 200,
-            "photo": "https://funburg.ru/upload/iblock/382/uzpxx2ytmhcl5fjq7xbc8ri075ip47yi/belye_rozy.webp"
-        }
-    ]
-    return Response(json.dumps(products), content_type="application/json") 
+    with engine.connect() as connection:
+        raw_result = connection.execute(text("SELECT * FROM products"))
+        result = []
+        for r in raw_result.all():
+            result.append(r._asdict())
+        return jsonify(result)
+    return Response(jsonify({"status": "500", "message": "Database is down!"}), status=500)
 
 def main():
     app.run("localhost", 8000, True)
