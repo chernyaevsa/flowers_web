@@ -38,6 +38,41 @@ def add_product():
             return jsonify(result.fetchone()._asdict())
         return jsonify({"message": "Error"})
 
+@app.route("/api/product/<id>", methods=["GET", "DELETE", "PUT"])
+def product(id: int):
+    if request.method == "GET":
+        with engine.connect() as connection:
+            query = text("SELECT * FROM products WHERE id = :id")
+            query = query.bindparams(bindparam("id", id))
+            result = connection.execute(query)
+            return jsonify(result.fetchone()._asdict())
+        return jsonify({"message": "Error"})
+    if request.method == "DELETE":
+        with engine.connect() as connection:
+            query = text("DELETE FROM products WHERE id = :id;")
+            query = query.bindparams(bindparam("id", id))
+            result = connection.execute(query)
+            connection.commit()
+            return jsonify({"message": "Success", "id": id})
+        return jsonify({"message": "Error"})
+    if request.method == "PUT":
+        form = request.form
+        with engine.connect() as connection:
+            query = text("UPDATE products SET name = :name, description = :description, price = :price, photo = :photo WHERE id = :id")
+            query = query.bindparams(bindparam("name", form.get("name")))
+            query = query.bindparams(bindparam("description", form.get("description")))
+            query = query.bindparams(bindparam("price", form.get("price")))
+            query = query.bindparams(bindparam("photo", form.get("image")))
+            query = query.bindparams(bindparam("id", id))
+            connection.execute(query)
+            connection.commit()
+            query = text("SELECT * FROM products WHERE id = :id")
+            query = query.bindparams(bindparam("id", id))
+            result = connection.execute(query)
+            return jsonify(result.fetchone()._asdict())
+        return jsonify({"message": "Error"})
+
+
 def main():
     app.run("localhost", 8000, True)
 
